@@ -49,7 +49,12 @@ jobs:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
-          port: ${{ secrets.FTP_PORT }}
-          protocol: ftps
+          port: 21
+          # Switching to 'ftp' if 'ftps' failed
+          protocol: ftp
           local-dir: ./app/build/outputs/apk/debug/
           server-dir: ./public_html/downloads/
+          # This helps bypass some firewall issues
+          passive: true
+
+          
