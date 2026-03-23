@@ -16,6 +16,7 @@ jobs:
         run: |
           mkdir temp_zip
           unzip Rukaze_App.zip -d temp_zip
+          # Locate where gradlew is inside the zip and move everything to root
           SOURCE_DIR=$(find temp_zip -name "gradlew" -exec dirname {} \;)
           cp -rn $SOURCE_DIR/* .
           rm -rf temp_zip
@@ -40,9 +41,14 @@ jobs:
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
       - name: Build with Gradle
-        run: ./gradlew assembleDebug -PAFF_ID=${{ github.event.client_payload.aff_id }} --no-daemon
+        # CORRECTION: Added -PAPK_OWNER to map the name from PHP payload
+        run: |
+          ./gradlew assembleDebug \
+            -PAFF_ID=${{ github.event.client_payload.aff_id }} \
+            -PAPK_OWNER="${{ github.event.client_payload.apk_owner }}" \
+            --no-daemon
 
-      - name: Rename and Release APK
+      - name: Rename APK
         run: |
           mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/${{ github.event.client_payload.aff_id }}.apk
 
