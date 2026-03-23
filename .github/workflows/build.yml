@@ -18,26 +18,29 @@ jobs:
           cp -rn $SOURCE_DIR/* .
           rm -rf temp_zip
 
-      - name: Set up JDK 11
+      - name: Set up Java 17 (For Tools)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install Android Build Tools
+        run: |
+          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;30.0.3"
+
+      - name: Set up Java 11 (For Your Code)
         uses: actions/setup-java@v4
         with:
           java-version: '11'
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Install Android Build Tools
-        # This fixes the <queries> error by providing modern build tools
-        run: |
-          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;30.0.3"
-
       - name: Make Gradlew Executable
         run: |
           chmod +x gradlew
-          # Also ensure a local.properties exists for the SDK path
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
       - name: Build with Gradle
-        # Added -Pandroid.builder.sdkDownload=true to help Gradle find the tools
         run: ./gradlew assembleDebug -PAFF_ID=${{ github.event.client_payload.aff_id }} -Pandroid.builder.sdkDownload=true --no-daemon
 
       - name: Upload to Rukaze Server
