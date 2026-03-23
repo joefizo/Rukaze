@@ -25,9 +25,11 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Fix Manifest (Remove Queries)
-        # This is the "Magic" line that stops the crash
-        run: sed -i '/<queries>/,/\<\/queries\>/d' app/src/main/AndroidManifest.xml || true
+      - name: Fix Manifest (Safe Clean)
+        # This replaces the <queries> tags with empty space instead of deleting lines
+        # This prevents the "XML structure" error you just saw.
+        run: |
+          sed -i 's/<queries>//g' app/src/main/AndroidManifest.xml
 
       - name: Make Gradlew Executable
         run: |
