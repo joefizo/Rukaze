@@ -1,48 +1,3 @@
-name: Remote Affiliate Build
-on:
-  repository_dispatch:
-    types: [build-apk]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Unzip and Organize
-        run: |
-          mkdir temp_zip
-          unzip Rukaze_App.zip -d temp_zip
-          SOURCE_DIR=$(find temp_zip -name "gradlew" -exec dirname {} \;)
-          cp -rn $SOURCE_DIR/* .
-          rm -rf temp_zip
-
-      - name: Set up Java 11
-        uses: actions/setup-java@v4
-        with:
-          java-version: '11'
-          distribution: 'temurin'
-          cache: 'gradle'
-
-      - name: Surgical Manifest Fix
-        # This removes the entire <queries>...</queries> block safely
-        # It handles cases where the tag might span multiple lines
-        run: |
-          sed -i '/<queries>/,/<\/queries>/d' app/src/main/AndroidManifest.xml
-          # Verify the file still has its closing tag
-          if ! grep -q "</manifest>" app/src/main/AndroidManifest.xml; then
-            echo "</manifest>" >> app/src/main/AndroidManifest.xml
-          fi
-
-      - name: Make Gradlew Executable
-        run: |
-          chmod +x gradlew
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-
-      - name: Build with Gradle
-        run: ./gradlew assembleDebug -PAFF_ID=${{ github.event.client_payload.aff_id }} --no-daemon
-
       - name: Upload to Rukaze Server
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -50,11 +5,8 @@ jobs:
           username: ${{ secrets.FTP_USER }}
           password: ${{ secrets.FTP_PASS }}
           port: 21
-          # Switching to 'ftp' if 'ftps' failed
           protocol: ftp
+          # 'loose' helps when servers have strict firewalls or older certificates
+          security: loose
           local-dir: ./app/build/outputs/apk/debug/
           server-dir: ./public_html/downloads/
-          # This helps bypass some firewall issues
-          passive: true
-
-          
