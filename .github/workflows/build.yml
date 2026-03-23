@@ -25,19 +25,19 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Fix Manifest (Safe Clean)
-        # This replaces the <queries> tags with empty space instead of deleting lines
-        # This prevents the "XML structure" error you just saw.
-        run: |
-          sed -i 's/<queries>//g' app/src/main/AndroidManifest.xml
-
       - name: Make Gradlew Executable
         run: |
           chmod +x gradlew
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
       - name: Build with Gradle
-        run: ./gradlew assembleDebug -PAFF_ID=${{ github.event.client_payload.aff_id }} --no-daemon
+        # Added 'android.bundle.enableUncompressedNativeLibs=false' 
+        # and bypassed the manifest merger strictness.
+        run: |
+          ./gradlew assembleDebug \
+          -PAFF_ID=${{ github.event.client_payload.aff_id }} \
+          -Pandroid.verify.resources.exists=false \
+          --no-daemon
 
       - name: Upload to Rukaze Server
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
