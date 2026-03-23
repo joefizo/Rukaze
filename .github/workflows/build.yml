@@ -1,0 +1,32 @@
+name: Remote Affiliate Build
+on:
+  repository_dispatch:
+    types: [build-apk]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build with Gradle
+        run: ./gradlew assembleDebug -PAFF_ID=${{ github.event.client_payload.aff_id }}
+
+      - name: Upload to Rukaze Server
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          port: ${{ secrets.FTP_PORT }}
+          protocol: ftps
+          local-dir: ./app/build/outputs/apk/debug/
+          server-dir: ./public_html/downloads/
+          args: --rename app-debug.apk rukaze_affiliate_${{ github.event.client_payload.aff_id }}.apk
