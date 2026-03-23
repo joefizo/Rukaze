@@ -10,11 +10,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Unzip Code
+        run: unzip Rukaze_App.zip -d .
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+
+      - name: Make Gradlew Executable
+        run: chmod +x ./gradlew
 
       - name: Build with Gradle
         run: ./gradlew assembleDebug -PAFF_ID=${{ github.event.client_payload.aff_id }}
