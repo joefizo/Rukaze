@@ -12,14 +12,9 @@ jobs:
 
       - name: Unzip and Organize
         run: |
-          # Create a temp folder to unzip
           mkdir temp_zip
           unzip Rukaze_App.zip -d temp_zip
-          
-          # Find where the actual Android project starts (where gradlew is)
           SOURCE_DIR=$(find temp_zip -name "gradlew" -exec dirname {} \;)
-          
-          # Move everything from that directory to the main work area
           cp -rn $SOURCE_DIR/* .
           rm -rf temp_zip
 
@@ -30,12 +25,20 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Install Android Build Tools
+        # This fixes the <queries> error by providing modern build tools
+        run: |
+          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "build-tools;30.0.3"
+
       - name: Make Gradlew Executable
-        run: chmod +x gradlew
+        run: |
+          chmod +x gradlew
+          # Also ensure a local.properties exists for the SDK path
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
 
       - name: Build with Gradle
-        # Using --no-daemon to prevent memory issues in the cloud
-        run: ./gradlew assembleDebug -PAFF_ID=${{ github.event.client_payload.aff_id }} --no-daemon
+        # Added -Pandroid.builder.sdkDownload=true to help Gradle find the tools
+        run: ./gradlew assembleDebug -PAFF_ID=${{ github.event.client_payload.aff_id }} -Pandroid.builder.sdkDownload=true --no-daemon
 
       - name: Upload to Rukaze Server
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -45,6 +48,5 @@ jobs:
           password: ${{ secrets.FTP_PASS }}
           port: ${{ secrets.FTP_PORT }}
           protocol: ftps
-          # This points to the standard Android build output folder
           local-dir: ./app/build/outputs/apk/debug/
           server-dir: ./public_html/downloads/
