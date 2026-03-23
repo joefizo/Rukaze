@@ -26,14 +26,38 @@ jobs:
           cache: 'gradle'
 
       - name: Surgical Manifest Fix
-        # This removes the entire <queries>...</queries> block safely
-        # It handles cases where the tag might span multiple lines
         run: |
           sed -i '/<queries>/,/<\/queries>/d' app/src/main/AndroidManifest.xml
-          # Verify the file still has its closing tag
           if ! grep -q "</manifest>" app/src/main/AndroidManifest.xml; then
             echo "</manifest>" >> app/src/main/AndroidManifest.xml
           fi
+
+      - name: Make Gradlew Executable
+        run: |
+          chmod +x gradlew
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+
+      - name: Build with Gradle
+        run: ./gradlew assembleDebug -PAFF_ID=${{ github.event.client_payload.aff_id }} --no-daemon
+
+      # --- NEW STEP: DOWNLOAD FROM GITHUB ---
+      - name: Upload APK to GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rukaze-Affiliate-APK
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Upload to Rukaze Server
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          port: ${{ secrets.FTP_PORT }}
+          protocol: ftps
+          security: loose
+          local-dir: ./app/build/outputs/apk/debug/
+          server-dir: /
 
       - name: Make Gradlew Executable
         run: |
