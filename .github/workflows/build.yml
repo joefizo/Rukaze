@@ -1,4 +1,4 @@
-Name: Remote Affiliate Build
+name: Remote Affiliate Build
 on:
   repository_dispatch:
     types: [build-apk]
@@ -15,25 +15,67 @@ jobs:
       - name: Unzip and Organize
         run: |
           mkdir temp_zip
-          unzip Rukaze_App.zip -d temp_zip
-          # Locate where gradlew is inside the zip and move everything to root
-          SOURCE_DIR=$(find temp_zip -name "gradlew" -exec dirname {} \;)
-          cp -rn $SOURCE_DIR/* .
+          unzip -q Rukaze_App.zip -d temp_zip
+          # Find where the actual Android project starts (where gradlew is)
+          GRADLEW_PATH=$(find temp_zip -name "gradlew" | head -n 1)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "Error: gradlew not found in zip"
+            exit 1
+          fi
+          SOURCE_DIR=$(dirname "$GRADLEW_PATH")
+          # Copy everything from that subfolder to the current root
+          cp -rn "$SOURCE_DIR"/* .
           rm -rf temp_zip
 
-      - name: Set up Java 11
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
           cache: 'gradle'
 
       - name: Surgical Manifest Fix
         run: |
-          sed -i '/<queries>/,/<\/queries>/d' app/src/main/AndroidManifest.xml
-          if ! grep -q "</manifest>" app/src/main/AndroidManifest.xml; then
-            echo "</manifest>" >> app/src/main/AndroidManifest.xml
+          # Ensure the file exists before running sed
+          MANIFEST_PATH="app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST_PATH" ]; then
+            # Remove any existing <queries> block to prevent duplicates or errors
+            sed -i '/<queries>/,/<\/queries>/d' "$MANIFEST_PATH"
+            # Ensure the manifest tag is closed properly
+            if ! grep -q "</manifest>" "$MANIFEST_PATH"; then
+              echo "</manifest>" >> "$MANIFEST_PATH"
+            fi
+          else
+            echo "Warning: Manifest not found at $MANIFEST_PATH"
           fi
+
+      - name: Make Gradlew Executable
+        run: |
+          chmod +x gradlew
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+
+      - name: Build with Gradle
+        run: |
+          ./gradlew assembleDebug \
+            -PAFF_ID=${{ github.event.client_payload.aff_id }} \
+            -PAPK_OWNER="${{ github.event.client_payload.apk_owner }}" \
+            --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: |
+          mkdir -p final_apk
+          mv app/build/outputs/apk/debug/app-debug.apk final_apk/${{ github.event.client_payload.aff_id }}.apk
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0
+          files: final_apk/${{ github.event.client_payload.aff_id }}.apk
+          generate_release_notes: false
+          # Added overwrite to ensure the same ID can be updated
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Make Gradlew Executable
         run: |
