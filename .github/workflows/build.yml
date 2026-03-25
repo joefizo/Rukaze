@@ -3,6 +3,10 @@ on:
   repository_dispatch:
     types: [build-apk]
 
+# OPT INTO NODE 24 TO STOP DEPRECATION WARNINGS
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,14 +20,13 @@ jobs:
         run: |
           mkdir temp_zip
           unzip -q Rukaze_App.zip -d temp_zip
-          # Find where the actual Android project starts (where gradlew is)
+          # Find gradlew regardless of folder structure
           GRADLEW_PATH=$(find temp_zip -name "gradlew" | head -n 1)
           if [ -z "$GRADLEW_PATH" ]; then
             echo "Error: gradlew not found in zip"
             exit 1
           fi
           SOURCE_DIR=$(dirname "$GRADLEW_PATH")
-          # Copy everything from that subfolder to the current root
           cp -rn "$SOURCE_DIR"/* .
           rm -rf temp_zip
 
@@ -36,17 +39,12 @@ jobs:
 
       - name: Surgical Manifest Fix
         run: |
-          # Ensure the file exists before running sed
           MANIFEST_PATH="app/src/main/AndroidManifest.xml"
           if [ -f "$MANIFEST_PATH" ]; then
-            # Remove any existing <queries> block to prevent duplicates or errors
             sed -i '/<queries>/,/<\/queries>/d' "$MANIFEST_PATH"
-            # Ensure the manifest tag is closed properly
             if ! grep -q "</manifest>" "$MANIFEST_PATH"; then
               echo "</manifest>" >> "$MANIFEST_PATH"
             fi
-          else
-            echo "Warning: Manifest not found at $MANIFEST_PATH"
           fi
 
       - name: Make Gradlew Executable
@@ -59,7 +57,7 @@ jobs:
           ./gradlew assembleDebug \
             -PAFF_ID=${{ github.event.client_payload.aff_id }} \
             -PAPK_OWNER="${{ github.event.client_payload.apk_owner }}" \
-            --no-daemon --stacktrace
+            --no-daemon
 
       - name: Rename APK
         run: |
@@ -71,33 +69,6 @@ jobs:
         with:
           tag_name: v1.0
           files: final_apk/${{ github.event.client_payload.aff_id }}.apk
-          generate_release_notes: false
-          # Added overwrite to ensure the same ID can be updated
           make_latest: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Make Gradlew Executable
-        run: |
-          chmod +x gradlew
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-
-      - name: Build with Gradle
-        # CORRECTION: Added -PAPK_OWNER to map the name from PHP payload
-        run: |
-          ./gradlew assembleDebug \
-            -PAFF_ID=${{ github.event.client_payload.aff_id }} \
-            -PAPK_OWNER="${{ github.event.client_payload.apk_owner }}" \
-            --no-daemon
-
-      - name: Rename APK
-        run: |
-          mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/${{ github.event.client_payload.aff_id }}.apk
-
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0
-          files: app/build/outputs/apk/debug/${{ github.event.client_payload.aff_id }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
