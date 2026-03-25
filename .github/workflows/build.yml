@@ -1,4 +1,4 @@
-name: Remote Affiliate Build
+Name: Remote Affiliate Build
 on:
   repository_dispatch:
     types: [build-apk]
@@ -52,12 +52,10 @@ jobs:
         run: |
           mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/${{ github.event.client_payload.aff_id }}.apk
 
-
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0
           files: app/build/outputs/apk/debug/${{ github.event.client_payload.aff_id }}.apk
-          overwrite: true # Ensures the new file replaces any old one with the same ID
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
