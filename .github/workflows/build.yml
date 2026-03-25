@@ -3,8 +3,8 @@ on:
   repository_dispatch:
     types: [build-apk]
 
-# OPT INTO NODE 24 TO STOP DEPRECATION WARNINGS
 env:
+  # This silences the Node.js 20 deprecation warning
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -20,7 +20,6 @@ jobs:
         run: |
           mkdir temp_zip
           unzip -q Rukaze_App.zip -d temp_zip
-          # Find gradlew regardless of folder structure
           GRADLEW_PATH=$(find temp_zip -name "gradlew" | head -n 1)
           if [ -z "$GRADLEW_PATH" ]; then
             echo "Error: gradlew not found in zip"
@@ -30,10 +29,10 @@ jobs:
           cp -rn "$SOURCE_DIR"/* .
           rm -rf temp_zip
 
-      - name: Set up Java 17
+      - name: Set up Java 11
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '11' # Switched back to 11 to match your Gradle/Groovy version
           distribution: 'temurin'
           cache: 'gradle'
 
