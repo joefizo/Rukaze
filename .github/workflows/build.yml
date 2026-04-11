@@ -50,12 +50,12 @@ jobs:
           OWNER="${{ github.event.client_payload.apk_owner }}"
           mv app/build/outputs/apk/debug/app-debug.apk final_apk/"${AFF}_${OWNER}".apk
 
-    - name: Upload Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: v1.0
-        # Point to the new filename
-        files: final_apk/"${{ github.event.client_payload.apk_owner }}".apk
-        make_latest: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v1.0-${{ github.event.client_payload.aff_id }}-${{ github.event.client_payload.apk_owner }}"
+          # Matches the mixed filename above
+          files: final_apk/"${{ github.event.client_payload.aff_id }}_${{ github.event.client_payload.apk_owner }}".apk
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
