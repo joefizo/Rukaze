@@ -1,4 +1,5 @@
 name: Remote Affiliate Build
+
 on:
   repository_dispatch:
     types: [build-apk]
@@ -11,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -43,18 +45,16 @@ jobs:
             -PAPK_OWNER="${{ github.event.client_payload.apk_owner }}" \
             --no-daemon
             
-    - name: Rename & Release
-      run: |
-        mkdir -p final_apk
-        # Use apk_owner for the filename instead of aff_id
-        mv app/build/outputs/apk/debug/app-debug.apk final_apk/"${{ github.event.client_payload.apk_owner }}".apk
+      - name: Rename & Release
+        run: |
+          mkdir -p final_apk
+          mv app/build/outputs/apk/debug/app-debug.apk final_apk/"${{ github.event.client_payload.apk_owner }}".apk
 
-    - name: Upload Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: v1.0
-        # Point to the new filename
-        files: final_apk/"${{ github.event.client_payload.apk_owner }}".apk
-        make_latest: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0
+          files: final_apk/"${{ github.event.client_payload.apk_owner }}".apk
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
