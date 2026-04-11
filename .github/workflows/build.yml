@@ -39,22 +39,23 @@ jobs:
       - name: Build with Gradle
         run: |
           ./gradlew assembleDebug \
-            -PAFF_ID="${{ github.event.client_payload.aff_id }}" \
+            -PAFF_ID=${{ github.event.client_payload.aff_id }} \
             -PAPK_OWNER="${{ github.event.client_payload.apk_owner }}" \
             --no-daemon
             
-      - name: Rename & Release
-        run: |
-          mkdir -p final_apk
+    - name: Rename & Release
+      run: |
+        mkdir -p final_apk
           AFF="${{ github.event.client_payload.aff_id }}"
           OWNER="${{ github.event.client_payload.apk_owner }}"
           mv app/build/outputs/apk/debug/app-debug.apk final_apk/"${AFF}_${OWNER}".apk
 
-      - name: Upload Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: "v1.0-${{ github.event.client_payload.aff_id }}-${{ github.event.client_payload.apk_owner }}"
-          files: final_apk/"${{ github.event.client_payload.aff_id }}_${{ github.event.client_payload.apk_owner }}".apk
-          make_latest: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v1.0
+        # Point to the new filename
+        files: final_apk/"${{ github.event.client_payload.apk_owner }}".apk
+        make_latest: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
