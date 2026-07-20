@@ -97,5 +97,6 @@ jobs:
             final_apk/rukaze.apk.sha256
             final_apk/assetlinks.json
           make_latest: true
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
