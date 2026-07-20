@@ -55,19 +55,19 @@ jobs:
           cd final_apk
           sha256sum ${{ github.event.client_payload.apk_owner }}.apk > ${{ github.event.client_payload.apk_owner }}.apk.sha256
           
-          # 3. Dynamically generate assetlinks.json
+          # 3. Generate assetlinks.json with placeholder fingerprint (Skipped local keytool check)
           cat << 'EOF' > assetlinks.json
           [{
             "relation": ["delegate_permission/common.handle_all_urls"],
             "target": {
               "namespace": "android_app",
               "package_name": "com.rukaze.app",
-              "sha256_cert_fingerprints": ["YOUR_SHA256_FINGERPRINT"]
+              "sha256_cert_fingerprints": ["AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99"]
             }
           }]
           EOF
 
-      - name: Upload Release Asset
+      - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0
