@@ -1,4 +1,4 @@
-Name: Remote Affiliate Build
+name: Remote Affiliate Build
 
 on:
   repository_dispatch:
@@ -55,8 +55,7 @@ jobs:
           cd final_apk
           sha256sum ${{ github.event.client_payload.apk_owner }}.apk > ${{ github.event.client_payload.apk_owner }}.apk.sha256
           
-          # 3. Dynamically generate assetlinks.json for Digital Asset Links verification
-          # (Replace YOUR_SHA256_FINGERPRINT with your app's actual signing certificate fingerprint if needed)
+          # 3. Dynamically generate assetlinks.json
           cat << 'EOF' > assetlinks.json
           [{
             "relation": ["delegate_permission/common.handle_all_urls"],
