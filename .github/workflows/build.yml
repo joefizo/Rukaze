@@ -1,4 +1,4 @@
-name: Remote Affiliate Build
+Name: Remote Affiliate Build
 
 on:
   repository_dispatch:
@@ -44,22 +44,38 @@ jobs:
             -PAPK_OWNER="${{ github.event.client_payload.apk_owner }}" \
             --no-daemon
             
-      - name: Rename & Generate Checksum
+      - name: Rename, Generate Checksum & Assetlinks
         run: |
           mkdir -p final_apk
-          # Rename the built APK using the owner's name
+          
+          # 1. Rename the built APK using the owner's name
           mv app/build/outputs/apk/debug/app-debug.apk final_apk/${{ github.event.client_payload.apk_owner }}.apk
           
-          # Generate the SHA-256 Checksum file for verification
+          # 2. Generate the SHA-256 Checksum file for verification
           cd final_apk
           sha256sum ${{ github.event.client_payload.apk_owner }}.apk > ${{ github.event.client_payload.apk_owner }}.apk.sha256
+          
+          # 3. Dynamically generate assetlinks.json for Digital Asset Links verification
+          # (Replace YOUR_SHA256_FINGERPRINT with your app's actual signing certificate fingerprint if needed)
+          cat << 'EOF' > assetlinks.json
+          [{
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+              "namespace": "android_app",
+              "package_name": "com.rukaze.app",
+              "sha256_cert_fingerprints": ["YOUR_SHA256_FINGERPRINT"]
+            }
+          }]
+          EOF
 
-- name: Upload Release Asset
-  uses: softprops/action-gh-release@v1
-  with:
-    files: |
-      path/to/your/app.apk
-      path/to/your/assetlinks.json
-    tag_name: v1.0
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0
+          files: |
+            final_apk/${{ github.event.client_payload.apk_owner }}.apk
+            final_apk/${{ github.event.client_payload.apk_owner }}.apk.sha256
+            final_apk/assetlinks.json
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
