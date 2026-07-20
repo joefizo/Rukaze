@@ -43,7 +43,7 @@ jobs:
             -PAFF_ID=${{ github.event.client_payload.aff_id }} \
             -PAPK_OWNER="${{ github.event.client_payload.apk_owner }}" \
             --no-daemon
-
+            
       - name: Rename, Generate Checksum & Assetlinks
         run: |
           mkdir -p final_apk
@@ -88,15 +88,6 @@ jobs:
           }]
           EOF
 
-      - name: Delete Old Release Asset
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Clean up old files from the release right before uploading the new ones
-          gh release delete-asset v1.0 rukaze.apk --repo joefizo/Rukaze || true
-          gh release delete-asset v1.0 rukaze.apk.sha256 --repo joefizo/Rukaze || true
-          gh release delete-asset v1.0 assetlinks.json --repo joefizo/Rukaze || true
-
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
@@ -106,5 +97,6 @@ jobs:
             final_apk/rukaze.apk.sha256
             final_apk/assetlinks.json
           make_latest: true
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
