@@ -54,13 +54,12 @@ jobs:
           cd final_apk
           sha256sum ${{ github.event.client_payload.apk_owner }}.apk > ${{ github.event.client_payload.apk_owner }}.apk.sha256
 
-      - name: Upload Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v1.0
-          files: |
-            final_apk/${{ github.event.client_payload.apk_owner }}.apk
-            final_apk/${{ github.event.client_payload.apk_owner }}.apk.sha256
-          make_latest: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+- name: Upload Release Asset
+  uses: softprops/action-gh-release@v1
+  with:
+    files: |
+      path/to/your/app.apk
+      path/to/your/assetlinks.json
+    tag_name: v1.0
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
