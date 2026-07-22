@@ -1,4 +1,4 @@
-name: Remote Affiliate Build
+Name: Remote Affiliate Build
 
 on:
   repository_dispatch:
@@ -48,17 +48,22 @@ jobs:
         run: |
           mkdir -p final_apk
           
-          # 1. Always output a single static filename: rukaze.apk
-          TARGET_APK="final_apk/rukaze.apk"
+          # Capture owner slug passed from PHP
+          OWNER_SLUG="${{ github.event.client_payload.apk_owner }}"
+          if [ -z "$OWNER_SLUG" ]; then
+            OWNER_SLUG="RUKAZE_COM"
+          fi
+
+          TARGET_APK="final_apk/${OWNER_SLUG}.apk"
           rm -f "$TARGET_APK"
           mv app/build/outputs/apk/debug/app-debug.apk "$TARGET_APK"
           
-          # 2. Generate the SHA-256 Checksum file for verification
+          # Generate checksum
           cd final_apk
-          sha256sum rukaze.apk > rukaze.apk.sha256
+          sha256sum "${OWNER_SLUG}.apk" > "${OWNER_SLUG}.apk.sha256"
           cd ..
 
-          # 3. Automatically extract the actual APK signature SHA-256 fingerprint
+          # Extract APK signature SHA-256 fingerprint
           BUILD_TOOLS_PATH=$(find $ANDROID_SDK_ROOT/build-tools -maxdepth 1 | sort | tail -n 1)
           APKSIGNER="$BUILD_TOOLS_PATH/apksigner"
           
@@ -76,8 +81,8 @@ jobs:
           
           echo "Extracted SHA-256 Fingerprint: $SHA256_FINGERPRINT"
 
-          # 4. Generate assetlinks.json dynamically using the extracted fingerprint
-          cat << EOF > final_apk/assetlinks.json
+          # Generate individual assetlinks file matching PHP's expected name: {apk_owner}_assetlinks.json
+          cat << EOF > "final_apk/${OWNER_SLUG}_assetlinks.json"
           [{
             "relation": ["delegate_permission/common.handle_all_urls"],
             "target": {
@@ -93,9 +98,9 @@ jobs:
         with:
           tag_name: v1.0
           files: |
-            final_apk/rukaze.apk
-            final_apk/rukaze.apk.sha256
-            final_apk/assetlinks.json
+            final_apk/*.apk
+            final_apk/*.sha256
+            final_apk/*_assetlinks.json
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
