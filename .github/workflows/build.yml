@@ -48,19 +48,14 @@ jobs:
         run: |
           mkdir -p final_apk
           
-          # 1. Dynamically capture the requested APK name from the payload, fallback to rukaze
-          APP_NAME="${{ github.event.client_payload.apk_owner }}"
-          if [ -z "$APP_NAME" ]; then
-            APP_NAME="rukaze"
-          fi
-          
-          TARGET_APK="final_apk/${APP_NAME}.apk"
+          # 1. Always output a single static filename: rukaze.apk
+          TARGET_APK="final_apk/rukaze.apk"
           rm -f "$TARGET_APK"
           mv app/build/outputs/apk/debug/app-debug.apk "$TARGET_APK"
           
           # 2. Generate the SHA-256 Checksum file for verification
           cd final_apk
-          sha256sum "${APP_NAME}.apk" > "${APP_NAME}.apk.sha256"
+          sha256sum rukaze.apk > rukaze.apk.sha256
           cd ..
 
           # 3. Automatically extract the actual APK signature SHA-256 fingerprint
@@ -81,8 +76,8 @@ jobs:
           
           echo "Extracted SHA-256 Fingerprint: $SHA256_FINGERPRINT"
 
-          # 4. Generate assetlinks.json dynamically using the extracted fingerprint
-          cat << EOF > final_apk/assetlinks.json
+          # 4. Generate user-specific assetlinks.json dynamically
+          cat << EOF > final_apk/${APP_NAME}_assetlinks.json
           [{
             "relation": ["delegate_permission/common.handle_all_urls"],
             "target": {
@@ -93,16 +88,6 @@ jobs:
           }]
           EOF
 
-      - name: Refresh Git Tag v1.0
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git tag -d v1.0 || true
-          git push origin :refs/tags/v1.0 || true
-          
-          git tag v1.0
-          git push origin v1.0
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
@@ -111,7 +96,7 @@ jobs:
           files: |
             final_apk/*.apk
             final_apk/*.sha256
-            final_apk/assetlinks.json
+            final_apk/*_assetlinks.json
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
