@@ -76,8 +76,8 @@ jobs:
           
           echo "Extracted SHA-256 Fingerprint: $SHA256_FINGERPRINT"
 
-          # 4. Generate user-specific assetlinks.json dynamically
-          cat << EOF > final_apk/${APP_NAME}_assetlinks.json
+          # 4. Generate assetlinks.json dynamically using the extracted fingerprint
+          cat << EOF > final_apk/assetlinks.json
           [{
             "relation": ["delegate_permission/common.handle_all_urls"],
             "target": {
@@ -88,15 +88,14 @@ jobs:
           }]
           EOF
 
-
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0
           files: |
-            final_apk/*.apk
-            final_apk/*.sha256
-            final_apk/*_assetlinks.json
+            final_apk/rukaze.apk
+            final_apk/rukaze.apk.sha256
+            final_apk/assetlinks.json
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
