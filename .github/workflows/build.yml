@@ -48,17 +48,17 @@ jobs:
         run: |
           mkdir -p final_apk
           
-          # 1. Always output a single static filename: rukaze.apk
-          TARGET_APK="final_apk/rukaze.apk"
-          rm -f "$TARGET_APK"
+          # 1. Rename the built APK using the owner's name
+          TARGET_APK="final_apk/${{ github.event.client_payload.apk_owner }}.apk"
           mv app/build/outputs/apk/debug/app-debug.apk "$TARGET_APK"
           
           # 2. Generate the SHA-256 Checksum file for verification
           cd final_apk
-          sha256sum rukaze.apk > rukaze.apk.sha256
+          sha256sum ${{ github.event.client_payload.apk_owner }}.apk > ${{ github.event.client_payload.apk_owner }}.apk.sha256
           cd ..
 
           # 3. Automatically extract the actual APK signature SHA-256 fingerprint
+          # Locates apksigner from the Android SDK build-tools installed on GitHub runners
           BUILD_TOOLS_PATH=$(find $ANDROID_SDK_ROOT/build-tools -maxdepth 1 | sort | tail -n 1)
           APKSIGNER="$BUILD_TOOLS_PATH/apksigner"
           
@@ -67,6 +67,7 @@ jobs:
             exit 1
           fi
 
+          # Parse out the SHA-256 certificate digest from the signed APK
           SHA256_FINGERPRINT=$($APKSIGNER verify --print-certs "$TARGET_APK" | grep -i "SHA-256 digest:" | head -n 1 | awk '{print $NF}')
           
           if [ -z "$SHA256_FINGERPRINT" ]; then
@@ -93,8 +94,8 @@ jobs:
         with:
           tag_name: v1.0
           files: |
-            final_apk/rukaze.apk
-            final_apk/rukaze.apk.sha256
+            final_apk/${{ github.event.client_payload.apk_owner }}.apk
+            final_apk/${{ github.event.client_payload.apk_owner }}.apk.sha256
             final_apk/assetlinks.json
           make_latest: true
         env:
