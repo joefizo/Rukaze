@@ -44,26 +44,21 @@ jobs:
             -PAPK_OWNER="${{ github.event.client_payload.apk_owner }}" \
             --no-daemon
             
-      - name: Rename, Generate Checksum & User Assetlinks
+      - name: Rename, Generate Checksum & Assetlinks
         run: |
           mkdir -p final_apk
           
-          # Capture dynamic apk_owner name sent from payload
-          APP_NAME="${{ github.event.client_payload.apk_owner }}"
-          if [ -z "$APP_NAME" ]; then
-            APP_NAME="rukaze"
-          fi
-          
-          TARGET_APK="final_apk/${APP_NAME}.apk"
+          # 1. Always output a single static filename: rukaze.apk
+          TARGET_APK="final_apk/rukaze.apk"
           rm -f "$TARGET_APK"
           mv app/build/outputs/apk/debug/app-debug.apk "$TARGET_APK"
           
-          # Generate checksum file named after the user
+          # 2. Generate the SHA-256 Checksum file for verification
           cd final_apk
-          sha256sum "${APP_NAME}.apk" > "${APP_NAME}.apk.sha256"
+          sha256sum rukaze.apk > rukaze.apk.sha256
           cd ..
 
-          # Extract APK signature fingerprint
+          # 3. Automatically extract the actual APK signature SHA-256 fingerprint
           BUILD_TOOLS_PATH=$(find $ANDROID_SDK_ROOT/build-tools -maxdepth 1 | sort | tail -n 1)
           APKSIGNER="$BUILD_TOOLS_PATH/apksigner"
           
@@ -81,28 +76,26 @@ jobs:
           
           echo "Extracted SHA-256 Fingerprint: $SHA256_FINGERPRINT"
 
-          # Generate a uniquely named assetlinks.json for this specific user (compact single-line layout)
-          echo '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"joefizo.rukaze.com","sha256_cert_fingerprints":["'$SHA256_FINGERPRINT'"]}}]' > "final_apk/${APP_NAME}_assetlinks.json"
-
-      - name: Refresh Git Tag v1.0
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git tag -d v1.0 || true
-          git push origin :refs/tags/v1.0 || true
-          
-          git tag v1.0
-          git push origin v1.0
+          # 4. Generate assetlinks.json dynamically using the extracted fingerprint
+          cat << EOF > final_apk/assetlinks.json
+          [{
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+              "namespace": "android_app",
+              "package_name": "joefizo.rukaze.com",
+              "sha256_cert_fingerprints": ["$SHA256_FINGERPRINT"]
+            }
+          }]
+          EOF
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0
           files: |
-            final_apk/*.apk
-            final_apk/*.sha256
-            final_apk/*_assetlinks.json
+            final_apk/rukaze.apk
+            final_apk/rukaze.apk.sha256
+            final_apk/assetlinks.json
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
