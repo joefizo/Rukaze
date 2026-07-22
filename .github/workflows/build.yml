@@ -1,4 +1,4 @@
-Name: Remote Affiliate Build
+name: Remote Affiliate Build
 
 on:
   repository_dispatch:
