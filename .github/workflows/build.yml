@@ -97,6 +97,7 @@ jobs:
             final_apk/${{ github.event.client_payload.apk_owner }}.apk
             final_apk/${{ github.event.client_payload.apk_owner }}.apk.sha256
             final_apk/assetlinks.json
+          overwrite: true
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
