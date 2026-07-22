@@ -81,17 +81,8 @@ jobs:
           
           echo "Extracted SHA-256 Fingerprint: $SHA256_FINGERPRINT"
 
-          # Generate a uniquely named assetlinks.json for this specific user
-          cat << EOF > "final_apk/${APP_NAME}_assetlinks.json"
-          [{
-            "relation": ["delegate_permission/common.handle_all_urls"],
-            "target": {
-              "namespace": "android_app",
-              "package_name": "joefizo.rukaze.com",
-              "sha256_cert_fingerprints": ["$SHA256_FINGERPRINT"]
-            }
-          }]
-          EOF
+          # Generate a uniquely named assetlinks.json for this specific user (compact single-line layout)
+          echo '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"joefizo.rukaze.com","sha256_cert_fingerprints":["'$SHA256_FINGERPRINT'"]}}]' > "final_apk/${APP_NAME}_assetlinks.json"
 
       - name: Refresh Git Tag v1.0
         run: |
